@@ -253,7 +253,7 @@ private:
 				for (int k = 0; k < subpattern.length(); k++) { temp += pattern[j + k]; }
 				if (temp == subpattern)
 				{
-					goodSuffixTable[i] = i - j;
+					goodSuffixTable[(patternLength - 1) - i] = i - j;
 					break;
 				}
 			}
@@ -338,4 +338,5 @@ int main()
 	return 0;
 
 }
+
 
