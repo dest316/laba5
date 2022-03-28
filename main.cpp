@@ -22,7 +22,7 @@ struct FIO
 	FIO(string data)
 	{
 		string temp = "";
-		for (size_t i = 0; i < data.size(); i++)
+		for (int i = 0; i < data.size(); i++)
 		{
 			if (data[i] == '_')
 			{
@@ -75,7 +75,7 @@ struct Date
 	Date(string data)
 	{
 		string temp = "";
-		for (size_t i = 0; i < data.size(); i++)
+		for (int i = 0; i < data.size(); i++)
 		{
 			if (data[i] == '/')
 			{
@@ -131,7 +131,7 @@ struct Student
 	Student(string data)
 	{
 		string temp = "";
-		for (size_t i = 0; i < data.size(); i++)
+		for (int i = 0; i < data.size(); i++)
 		{
 			if (data[i] == ' ')
 			{
@@ -211,6 +211,56 @@ private:
 	fstream file;
 	Student* students;
 	int recordCount;
+	int* CreateBadSymbolsTable(string pattern)
+	{
+		int patternLength = pattern.length();
+		int* badSymbolsTable = new int[patternLength]; // не забыть очистить память
+		for (int i = 0; i < patternLength; i++) { badSymbolsTable[i] = -1; }
+		for (int i = patternLength - 2; i >= 0; i--)
+		{
+			if (badSymbolsTable[i] == -1)
+			{
+				badSymbolsTable[i] = patternLength - 1 - i;
+				for (int j = i - 1; j >= 0; j--)
+				{
+					if (pattern[j] == pattern[i]) { badSymbolsTable[j] = badSymbolsTable[i]; }
+				}
+			}
+		}
+		for (int i = 0; i < patternLength - 2; i++)
+		{
+			if (pattern[patternLength - 1] == pattern[i])
+			{
+				badSymbolsTable[patternLength - 1] = badSymbolsTable[i];
+				break;
+			}
+		}
+		if (badSymbolsTable[patternLength - 1] == -1) { badSymbolsTable[patternLength - 1] = patternLength; }
+		return badSymbolsTable;
+	}
+	int* CreateGoodSuffixTable(string pattern)
+	{
+		int patternLength = pattern.length();
+		int* goodSuffixTable = new int[patternLength];
+		for (int i = 0; i < patternLength; i++) { goodSuffixTable[i] = -1; }
+		for (int i = patternLength - 1; i > 0; i--)
+		{
+			string subpattern = "";
+			for (int j = i; j < patternLength; j++) { subpattern += pattern[j]; }
+			for (int j = i - 1; j >= 0; j--)
+			{
+				string temp = "";
+				for (int k = 0; k < subpattern.length(); k++) { temp += pattern[j + k]; }
+				if (temp == subpattern)
+				{
+					goodSuffixTable[i] = i - j;
+					break;
+				}
+			}
+			if (goodSuffixTable[i] == -1) { goodSuffixTable[i] = patternLength - 1; }
+		}
+		return goodSuffixTable;
+	}
 public:
 	InputFile(string pathToFile) {
 
@@ -220,7 +270,7 @@ public:
 			getline(file, temp);			
 			recordCount = stoi(temp);
 			students = new Student[recordCount];
-			for (size_t i = 0; i < recordCount; i++)
+			for (int i = 0; i < recordCount; i++)
 			{
 				getline(file, temp);
 				if (temp == "") continue;
@@ -234,7 +284,7 @@ public:
 		const int hashConst = 13;
 		const int modConst = 1000;
 		int result = 0;
-		for (size_t i = 0; i < str.length(); i++)
+		for (int i = 0; i < str.length(); i++)
 		{
 			result += (static_cast<int>(str[i])) * static_cast<int>(pow(hashConst, str.length() - (i + 1))) % modConst;
 		}
@@ -267,12 +317,23 @@ public:
 		}
 		return -1;
 	}
+	int TurboBMSearch(string pattern, string text)
+	{
+		if (pattern == "" || text == "") { return 0; }
+		int* badSymbolsTable = CreateBadSymbolsTable(pattern);
+		int* goodSuffixTable = CreateGoodSuffixTable(pattern); //буквально чуть-чуть надо разобраться, с последним символом. Чтобы не выводил -1.
+		for (int i = 0; i < pattern.length(); i++) { cout << goodSuffixTable[i] << '\t'; }
+
+		return 0; //заглушка
+		
+	}
 };
 
 int main()
 {
+	setlocale(LC_ALL, "ru");
 	InputFile *file = new InputFile("input1.txt");
-	cout << file->RabinKarpSearch("ab", "baoba") << endl;
+	file->TurboBMSearch("babbab", "b");
 	
 	return 0;
 
