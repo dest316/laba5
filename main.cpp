@@ -279,6 +279,18 @@ public:
 		}
 		file.close();
 	}
+	Student* GetStudents(){ return students; }
+	int GetRecordCount() { return recordCount; }
+	
+	int CheckCharInString(char pattern, string text)
+	{
+		for (int i = 0; i < text.length(); i++)
+		{
+			if (pattern == text[i]) { return i; }
+		}
+		return -1;
+	}
+		
 	int GetHash(string str)
 	{
 		const int hashConst = 13;
@@ -291,7 +303,7 @@ public:
 		return result;
 	}
 	/// <summary>
-	/// Функция проверяет, входит ли подстрока pattern в строку text
+	/// Метод проверяет, входит ли подстрока pattern в строку text
 	/// </summary>
 	/// <param name="pattern">шаблон, наличие которого проверяется</param>
 	/// <param name="text">текст, в котором ищут шаблон</param>
@@ -317,14 +329,36 @@ public:
 		}
 		return -1;
 	}
+	/// <summary>
+	/// Метод проверяет, входит ли подстрока pattern в строку text
+	/// </summary>
+	/// <param name="pattern">шаблон, наличие которого проверяется</param>
+	/// <param name="text">текст, в котором ищут шаблон</param>
+	/// <returns>1, если входит, -1 если не входит, 0 если произошла непредвиденная ситуация</returns>
 	int TurboBMSearch(string pattern, string text)
 	{
-		if (pattern == "" || text == "") { return 0; }
+		if (pattern == "" || text == "" || pattern.length() > text.length()) { return 0; }
 		int* badSymbolsTable = CreateBadSymbolsTable(pattern);
-		int* goodSuffixTable = CreateGoodSuffixTable(pattern); //буквально чуть-чуть надо разобраться, с последним символом. Чтобы не выводил -1.
-		for (int i = 0; i < pattern.length(); i++) { cout << goodSuffixTable[i] << '\t'; }
-
-		return 0; //заглушка
+		//int* goodSuffixTable = CreateGoodSuffixTable(pattern);
+		int index = pattern.length() - 1;
+		while (index <= text.length())
+		{
+			bool isSimilar = true;
+			for (int i = 0; i < pattern.length(); i++)
+			{
+				if (pattern[pattern.length() - 1 - i] != text[index - i])
+				{
+					isSimilar = false;
+					int shift = (CheckCharInString(text[index - i], pattern) == -1 ? pattern.length() : badSymbolsTable[CheckCharInString(text[index - i], pattern)]);
+					index += shift;
+					break;
+					//вычислить значение сдвига в зависимости от символа несовпадения
+					//прибавить к индексу это значение
+				}
+			}
+			if (isSimilar) { return 1; } //если требуется найти k вхождений, то надо будет прибавить 1 к счетчику
+		}
+		return -1;
 		
 	}
 };
@@ -333,10 +367,35 @@ int main()
 {
 	setlocale(LC_ALL, "ru");
 	InputFile *file = new InputFile("input1.txt");
-	file->TurboBMSearch("babbab", "b");
-	
+	fstream outputRabinKarp, outputTurboBM;
+	string studentTemp;
+	string pattern = "jdsakgj;gslkadjg";
+	outputRabinKarp.open("output1.txt", ios::out);
+	for (int i = 0; i < file->GetRecordCount(); i++)
+	{
+		studentTemp = file->GetStudents()[i].group_number;
+		if (file->RabinKarpSearch(pattern, studentTemp) == 1)
+		{
+			outputRabinKarp << file->GetStudents()[i] << endl;
+		}
+	}
+	outputRabinKarp.close();
+
+	outputTurboBM.open("output2.txt", ios::out);
+	for (int i = 0; i < file->GetRecordCount(); i++)
+	{
+		studentTemp = file->GetStudents()[i].group_number;
+		if (file->TurboBMSearch(pattern, studentTemp) == 1)
+		{
+			outputTurboBM << file->GetStudents()[i] << endl;
+		}
+	}
+	outputTurboBM.close();
+	//cout << file->TurboBMSearch(pattern, "MMM") << endl;
+	delete file;
 	return 0;
 
 }
+
 
 
