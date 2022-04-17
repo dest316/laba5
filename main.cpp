@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <ctime>
 
 using namespace std;
 
@@ -261,6 +262,26 @@ private:
 		}
 		return goodSuffixTable;
 	}
+	int CheckCharInString(char pattern, string text)
+	{
+		for (int i = 0; i < text.length(); i++)
+		{
+			if (pattern == text[i]) { return i; }
+		}
+		return -1;
+	}
+	int GetHash(string str)
+	{
+		const int hashConst = 13;
+		const int modConst = 1000;
+		int result = 0;
+		for (int i = 0; i < str.length(); i++)
+		{
+			result += (static_cast<int>(str[i])) * static_cast<int>(pow(hashConst, str.length() - (i + 1))) % modConst;
+		}
+		return result;
+	}
+
 public:
 	InputFile(string pathToFile) {
 
@@ -280,37 +301,18 @@ public:
 		file.close();
 	}
 	Student* GetStudents(){ return students; }
-	int GetRecordCount() { return recordCount; }
+	int GetRecordCount() { return recordCount; }	
 	
-	int CheckCharInString(char pattern, string text)
-	{
-		for (int i = 0; i < text.length(); i++)
-		{
-			if (pattern == text[i]) { return i; }
-		}
-		return -1;
-	}
-		
-	int GetHash(string str)
-	{
-		const int hashConst = 13;
-		const int modConst = 1000;
-		int result = 0;
-		for (int i = 0; i < str.length(); i++)
-		{
-			result += (static_cast<int>(str[i])) * static_cast<int>(pow(hashConst, str.length() - (i + 1))) % modConst;
-		}
-		return result;
-	}
 	/// <summary>
 	/// Метод проверяет, входит ли подстрока pattern в строку text
 	/// </summary>
 	/// <param name="pattern">шаблон, наличие которого проверяется</param>
 	/// <param name="text">текст, в котором ищут шаблон</param>
 	/// <returns>1, если входит, -1 если не входит, 0 если произошла непредвиденная ситуация</returns>
-	int RabinKarpSearch(string pattern, string text)
+	int RabinKarpSearch(string pattern, string text, int occurrenceCount = 1)
 	{
-		if (pattern == "" || text == "") { return 0; }
+		if (pattern == "" || text == "" || occurrenceCount < 1) { return 0; }
+		int counter = 0;
 		int patternLength = pattern.length();
 		int patternHash = this->GetHash(pattern);
 		for (int i = 0; i < text.length() - patternLength + 1; i++)
@@ -324,9 +326,14 @@ public:
 				{
 					if (pattern[j] != temp[j]) { equalityFlag = false; }
 				}
-				if (equalityFlag) { return 1; }
+				if (equalityFlag) { 
+					counter++;
+					i += patternLength - 1;
+					if (i >= text.length() - patternLength + 1) { break; }
+				}
 			}
 		}
+		if (counter == occurrenceCount) { return 1; }
 		return -1;
 	}
 	/// <summary>
@@ -335,12 +342,16 @@ public:
 	/// <param name="pattern">шаблон, наличие которого проверяется</param>
 	/// <param name="text">текст, в котором ищут шаблон</param>
 	/// <returns>1, если входит, -1 если не входит, 0 если произошла непредвиденная ситуация</returns>
-	int TurboBMSearch(string pattern, string text)
+	int TurboBMSearch(string pattern, string text, int occurrenceCount = 1)
 	{
-		if (pattern == "" || text == "" || pattern.length() > text.length()) { return 0; }
+		if (pattern == "" || text == "" || pattern.length() > text.length() || occurrenceCount < 1) { return 0; }
+		int counter = 0;
 		int* badSymbolsTable = CreateBadSymbolsTable(pattern);
-		//int* goodSuffixTable = CreateGoodSuffixTable(pattern);
-		int index = pattern.length() - 1;
+		/*for (size_t i = 0; i < pattern.length(); i++)
+		{
+			cout << badSymbolsTable[i] << " ";
+		}*/
+		int index = pattern.length() - 1; //мб без -1
 		while (index <= text.length())
 		{
 			bool isSimilar = true;
@@ -348,16 +359,21 @@ public:
 			{
 				if (pattern[pattern.length() - 1 - i] != text[index - i])
 				{
-					isSimilar = false;
-					int shift = (CheckCharInString(text[index - i], pattern) == -1 ? pattern.length() : badSymbolsTable[CheckCharInString(text[index - i], pattern)]);
+					isSimilar = false;				
+					int shift = (CheckCharInString(text[index - i], pattern) == -1 ? pattern.length() - 1 - i : badSymbolsTable[CheckCharInString(text[index - i], pattern)] - i);
+					if (shift < 1) { shift = 1; }
 					index += shift;
 					break;
 					//вычислить значение сдвига в зависимости от символа несовпадения
 					//прибавить к индексу это значение
 				}
 			}
-			if (isSimilar) { return 1; } //если требуется найти k вхождений, то надо будет прибавить 1 к счетчику
+			if (isSimilar) {
+				counter++;
+				index += pattern.length() - 1;
+			} //если требуется найти k вхождений, то надо будет прибавить 1 к счетчику
 		}
+		if (counter == occurrenceCount) { return 1; }
 		return -1;
 		
 	}
@@ -369,33 +385,46 @@ int main()
 	InputFile *file = new InputFile("input1.txt");
 	fstream outputRabinKarp, outputTurboBM;
 	string studentTemp;
-	string pattern = "jdsakgj;gslkadjg";
+	string pattern = "01.03.03";
 	outputRabinKarp.open("output1.txt", ios::out);
+	clock_t startRK = clock();
 	for (int i = 0; i < file->GetRecordCount(); i++)
 	{
 		studentTemp = file->GetStudents()[i].group_number;
-		if (file->RabinKarpSearch(pattern, studentTemp) == 1)
+		if (file->RabinKarpSearch(pattern, studentTemp, 1) == 1)
 		{
 			outputRabinKarp << file->GetStudents()[i] << endl;
 		}
 	}
+	clock_t finishRK = clock();
+	double timeRK = static_cast<double>(finishRK - startRK) / CLOCKS_PER_SEC;
+	outputRabinKarp.seekp(ios::beg);
+	outputRabinKarp << timeRK << endl;
 	outputRabinKarp.close();
+	
 
 	outputTurboBM.open("output2.txt", ios::out);
+	clock_t startBM = clock();
 	for (int i = 0; i < file->GetRecordCount(); i++)
 	{
 		studentTemp = file->GetStudents()[i].group_number;
-		if (file->TurboBMSearch(pattern, studentTemp) == 1)
+		if (file->TurboBMSearch(pattern, studentTemp, 1) == 1)
 		{
 			outputTurboBM << file->GetStudents()[i] << endl;
 		}
 	}
+	clock_t finishBM = clock();
+	double timeBM = static_cast<double>(finishBM - startBM) / CLOCKS_PER_SEC;
+	outputTurboBM.seekp(ios::beg);
+	outputTurboBM << timeBM << endl;
 	outputTurboBM.close();
-	//cout << file->TurboBMSearch(pattern, "MMM") << endl;
+	
 	delete file;
 	return 0;
 
 }
+
+
 
 
 
